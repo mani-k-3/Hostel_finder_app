@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hostel_app/login_page.dart';
+import 'package:hostel_app/search_screen.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -10,12 +11,13 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  String _searchResult = '';
+ // String _searchResult = '';
 
   void performSearch(String query) {
     // Implement your search functionality here.
     setState(() {
-      _searchResult = 'Search result for: $query';
+      //_searchResult = 'Search result for: $query';
+      Navigator.push(context, MaterialPageRoute(builder: (context) => MyHostelPage(searchArea: _searchController.text)));
     });
   }
 
@@ -23,7 +25,7 @@ class _HomePageState extends State<HomePage> {
     // Use Navigator to push the login page onto the screen.
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => LoginScreen(),
+        builder: (context) => const LoginScreen(),
       ),
     );
   }
@@ -72,9 +74,9 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Column(
+      body: const Column(
         children: <Widget>[
-          const Padding(
+          Padding(
             padding: EdgeInsets.all(16.0),
             child: Column(
               children: [
@@ -82,7 +84,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          Text(_searchResult),
+          //Text(_searchResult),
         ],
       ),
     );
