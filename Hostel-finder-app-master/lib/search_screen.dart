@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() => runApp(MyApp());
 
@@ -6,7 +7,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: MyHostelPage(searchArea: 'Kanuru',),
+      home: MyHostelPage(searchArea: 'Kanuru'),
     );
   }
 }
@@ -33,19 +34,24 @@ class _MyHostelPageState extends State<MyHostelPage> {
   }
 
   void fetchHostelData() {
-    // Simulate fetching data from a database based on the search area
-    // Replace this with actual database fetching logic
-    List<Hostel> dummyData = [
-      Hostel(name: 'Hostel A', address: '123 Main St', imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM9cS2rAmSrIWu4WwKO_T0im4LhZLfC4PRvBfr4v0zJOA7JecR22j7Ukls2HBG2wvWb2w&usqp=CAU', isFavorite: false),
-      Hostel(name: 'Hostel B', address: '456 Side St', imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM9cS2rAmSrIWu4WwKO_T0im4LhZLfC4PRvBfr4v0zJOA7JecR22j7Ukls2HBG2wvWb2w&usqp=CAU', isFavorite: false),
-      Hostel(name: 'Hostel C', address: '789 Back St', imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM9cS2rAmSrIWu4WwKO_T0im4LhZLfC4PRvBfr4v0zJOA7JecR22j7Ukls2HBG2wvWb2w&usqp=CAU', isFavorite: false),
-      Hostel(name: 'Hostel D', address: '101 New St', imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM9cS2rAmSrIWu4WwKO_T0im4LhZLfC4PRvBfr4v0zJOA7JecR22j7Ukls2HBG2wvWb2w&usqp=CAU', isFavorite: false),
-      Hostel(name: 'Hostel E', address: '202 Side St', imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM9cS2rAmSrIWu4WwKO_T0im4LhZLfC4PRvBfr4v0zJOA7JecR22j7Ukls2HBG2wvWb2w&usqp=CAU', isFavorite: false),
-      Hostel(name: 'Hostel F', address: '303 Front St', imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM9cS2rAmSrIWu4WwKO_T0im4LhZLfC4PRvBfr4v0zJOA7JecR22j7Ukls2HBG2wvWb2w&usqp=CAU', isFavorite: false),
-    ];
-
-    setState(() {
-      hostels = dummyData;
+    FirebaseFirestore.instance
+        .collection('hostels')
+        .where('area', isEqualTo: widget.searchArea)
+        .get()
+        .then((QuerySnapshot querySnapshot) {
+      setState(() {
+        hostels = querySnapshot.docs.map((doc) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          return Hostel(
+            name: data['name'] ?? '',
+            address: data['address'] ?? '',
+            imageUrl: data['imageUrl'] ?? '',
+            isFavorite: false, // You can fetch this from Firebase if needed
+          );
+        }).toList();
+      });
+    }).catchError((error) {
+      print("Error fetching hostels: $error");
     });
   }
 
@@ -245,8 +251,6 @@ class _MyHostelPageState extends State<MyHostelPage> {
     );
   }
 
-  // ...
-
   void handleFilterChange(String filter, bool? value) {
     setState(() {
       if (value != null) {
@@ -258,9 +262,6 @@ class _MyHostelPageState extends State<MyHostelPage> {
       }
     });
   }
-
-// ...
-
 
   void applyFilters() {
     // Implement logic to apply filters and fetch data from the database
