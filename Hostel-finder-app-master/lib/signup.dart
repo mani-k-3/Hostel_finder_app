@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:hostel_app/logged_homepage.dart';
 import 'package:hostel_app/login_page.dart';
 import 'home.dart';
 
 class SignUpScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController(); // Add this line
 
   SignUpScreen({super.key});
+
 
   @override
   Widget build(BuildContext context) {
@@ -65,19 +68,31 @@ class SignUpScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 40),
                       child: Column(
                         children: [
-                          makeInput(label: "Email"),
-                          makeInput(label: "Password", obsureText: true),
-                          makeInput(
-                              label: "Confirm Password", obsureText: true),
+                          makeInput(label: "Email", controller: emailController), // Add this line
+                          makeInput(label: "Password", obsureText: true, controller: passwordController),
+                          makeInput(label: "Confirm Password", obsureText: true, controller: confirmPasswordController),
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {
-                        signUp(context);
+                        String email = emailController.text;
+                        String password = passwordController.text;
+                        String confirmPassword = confirmPasswordController.text;
+
+                        if (password == confirmPassword) {
+                          signUp(context, email, password);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Password and Confirm Password do not match.'),
+                            ),
+                          );
+                        }
                       },
-                      child: const Text('Login'),
+                      child: const Text('Sign Up'),
                     ),
                     const SizedBox(
                       height: 20,
@@ -128,7 +143,8 @@ class SignUpScreen extends StatelessWidget {
     );
   }
 
-  Widget makeInput({label, obsureText = false}) {
+
+  Widget makeInput({label, obsureText = false, required TextEditingController controller}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -145,7 +161,7 @@ class SignUpScreen extends StatelessWidget {
         ),
         TextField(
           obscureText: obsureText,
-          controller: obsureText ? passwordController : emailController,
+          controller: controller,
           decoration: const InputDecoration(
             contentPadding:
             EdgeInsets.symmetric(vertical: 0, horizontal: 10),
@@ -168,10 +184,8 @@ class SignUpScreen extends StatelessWidget {
     );
   }
 
-  Future<void> signUp(BuildContext context) async {
-    String email = emailController.text;
-    String password = passwordController.text;
 
+  Future<void> signUp(BuildContext context, String email, String password) async {
     try {
       UserCredential userCredential =
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -184,7 +198,7 @@ class SignUpScreen extends StatelessWidget {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const HomePage(),
+            builder: (context) => const LoggedHomePage(),
           ),
         );
       }

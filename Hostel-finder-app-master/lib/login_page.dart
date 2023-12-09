@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hostel_app/AuthProvider.dart';
+import 'package:hostel_app/MobileAuth.dart';
 import 'package:hostel_app/home.dart';
+import 'package:hostel_app/logged_homepage.dart';
 import 'package:hostel_app/signup.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final CustomAuthProvider _authProvider = CustomAuthProvider();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
@@ -80,6 +83,16 @@ class _LoginScreenState extends State<LoginScreen> {
               },
               child: const Text('Sign in with Google'),
             ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => LoginWithPhoneNumber(),
+                  ),
+                );
+              },
+              child: const Text('Sign in with Mobile'),
+            ),
           ],
         ),
       ),
@@ -87,13 +100,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> signInWithEmailPassword(BuildContext context) async {
+    String email = emailController.text;
     String password = passwordController.text;
 
     try {
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const HomePage(),
+          builder: (context) => const LoggedHomePage(),
         ),
       );
     } on FirebaseAuthException catch (e) {
@@ -138,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const HomePage(),
+            builder: (context) => const LoggedHomePage(),
           ),
         );
       } else {

@@ -1,28 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-void main() => runApp(MyApp());
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: MyHostelPage(searchArea: 'Kanuru'),
-    );
-  }
-}
-
-class MyHostelPage extends StatefulWidget {
-  final String searchArea;
-
-  MyHostelPage({required this.searchArea});
+class FavouritePage extends StatefulWidget {
 
   @override
-  _MyHostelPageState createState() => _MyHostelPageState();
+  _FavouriteState createState() => _FavouriteState();
 }
 
-class _MyHostelPageState extends State<MyHostelPage> {
-  List<Hostel> hostels = [];
+class _FavouriteState extends State<FavouritePage> {
+
   List<Hostel> favoriteHostels = [];
   List<String> selectedFilters = [];
   String? selectedSort;
@@ -35,12 +22,11 @@ class _MyHostelPageState extends State<MyHostelPage> {
 
   void fetchHostelData() {
     FirebaseFirestore.instance
-        .collection('hostels')
-        .where('area', isEqualTo: widget.searchArea)
+        .collection('favoriteHostels')
         .get()
         .then((QuerySnapshot querySnapshot) {
       setState(() {
-        hostels = querySnapshot.docs.map((doc) {
+        favoriteHostels = querySnapshot.docs.map((doc) {
           Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
           return Hostel(
             name: data['name'] ?? '',
@@ -59,7 +45,7 @@ class _MyHostelPageState extends State<MyHostelPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hostels in ${widget.searchArea}'),
+        title: Text('Favourite hostels'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
@@ -92,14 +78,14 @@ class _MyHostelPageState extends State<MyHostelPage> {
             ),
             Expanded(
               child: ListView.builder(
-                itemCount: hostels.length,
+                itemCount: favoriteHostels.length,
                 itemBuilder: (context, index) {
                   return InkWell(
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => HostelDetailsPage(hostel: hostels[index]),
+                          builder: (context) => HostelDetailsPage(hostel: favoriteHostels[index]),
                         ),
                       );
                     },
@@ -109,7 +95,7 @@ class _MyHostelPageState extends State<MyHostelPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Image.network(
-                            hostels[index].imageUrl,
+                            favoriteHostels[index].imageUrl,
                             height: 150.0,
                             width: double.infinity,
                             fit: BoxFit.cover,
@@ -122,25 +108,25 @@ class _MyHostelPageState extends State<MyHostelPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    hostels[index].name,
+                                    favoriteHostels[index].name,
                                     style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                                   ),
-                                  Text(hostels[index].address),
+                                  Text(favoriteHostels[index].address),
                                 ],
                               ),
                               IconButton(
                                 icon: Icon(
-                                  hostels[index].isFavorite ? Icons.favorite : Icons.favorite_border,
+                                  favoriteHostels[index].isFavorite ? Icons.favorite : Icons.favorite_border,
                                   color: Colors.red,
                                 ),
                                 onPressed: () {
                                   setState(() {
-                                    hostels[index].isFavorite = !hostels[index].isFavorite;
+                                    favoriteHostels[index].isFavorite = !favoriteHostels[index].isFavorite;
 
-                                    if (hostels[index].isFavorite) {
-                                      favoriteHostels.add(hostels[index]);
+                                    if (favoriteHostels[index].isFavorite) {
+                                      favoriteHostels.add(favoriteHostels[index]);
                                     } else {
-                                      favoriteHostels.remove(hostels[index]);
+                                      favoriteHostels.remove(favoriteHostels[index]);
                                     }
                                   });
                                 },
