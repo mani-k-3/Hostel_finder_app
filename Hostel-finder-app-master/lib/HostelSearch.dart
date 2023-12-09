@@ -80,190 +80,12 @@ class _HostelSearchState extends State<HostelSearch> {
               showSearchDialog();
             },
           ),
-          PopupMenuButton<String>(
-            icon: Icon(Icons.filter_list),
-            onSelected: (value) {
-              setState(() {
-                if (selectedFacilities.contains(value)) {
-                  selectedFacilities.remove(value);
-                } else {
-                  selectedFacilities.add(value);
-                }
-                applyFilterAndSort();
-              });
-            },
-            itemBuilder: (BuildContext context) {
-              return <PopupMenuEntry<String>>[
-                // ... (unchanged)
-              ];
-            },
-          ),
-          PopupMenuButton<String>(
-            icon: Icon(Icons.sort),
-            onSelected: (value) {
-              setState(() {
-                selectedSort = value!;
-                applyFilterAndSort();
-              });
-            },
-            itemBuilder: (BuildContext context) {
-              return <PopupMenuEntry<String>>[
-                // ... (unchanged)
-              ];
-            },
-          ),
+          _buildFilterDropdown(),
+          _buildSortDropdown(),
         ],
       ),
       body: Column(
         children: [
-          GestureDetector(
-            onTap: () {
-              // Navigate to the details screen or perform an action
-            },
-            child: Container(
-              margin: EdgeInsets.all(8.0),
-              padding: EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(
-                  color: Colors.grey,
-                  width: 1.0,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      // Image
-                      Image.network(
-                        'https://lh5.googleusercontent.com/p/AF1QipPEiKy1JF9kE3eCQ2lIuhsDXnJ_XSieCDM5oQ1k=w260-h175-n-k-no',
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                      ),
-                      // Favorite icon
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Icon(
-                          Icons.favorite,
-                          color: Colors.red,
-                          size: 24,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.0), // Adjust as needed
-                  // Data below the image
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Sai Vigneswara',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        Text(
-                          'Price: 5000',
-                          style: TextStyle(
-                            color: Colors.grey,
-                          ),
-                        ),
-                        Text(
-                          'Available rooms 8',
-                          style: TextStyle(
-                            color: Colors.grey,
-                          ),
-                        ),
-                        // Add other data fields as needed
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () {
-              // Navigate to the details screen or perform an action
-            },
-            child: Container(
-              margin: EdgeInsets.all(8.0),
-              padding: EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(
-                  color: Colors.grey,
-                  width: 1.0,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      // Image
-                      Image.network(
-                        'https://images.jdmagicbox.com/comp/vijayawada/i2/0866px866.x866.181031200630.z6i2/catalogue/spoorthi-ladies-and-working-womens-hostel-benz-circle-vijayawada-hostels-for-women-1idbd6wzt3.jpg',
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                      ),
-                      // Favorite icon
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Icon(
-                          Icons.favorite,
-                          color: Colors.red,
-                          size: 24,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8.0), // Adjust as needed
-                  // Data below the image
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Sri bhavani',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        Text(
-                          'Price: 5000',
-                          style: TextStyle(
-                            color: Colors.grey,
-                          ),
-                        ),
-                        Text(
-                          'Available rooms 12',
-                          style: TextStyle(
-                            color: Colors.grey,
-                          ),
-                        ),
-                        // Add other data fields as needed
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-
-
-
           Expanded(
             child: ListView.builder(
               itemCount: filteredResults.length,
@@ -283,13 +105,6 @@ class _HostelSearchState extends State<HostelSearch> {
                       ),
                     ],
                   ),
-                  leading: FadeInImage.memoryNetwork(
-                    placeholder: kTransparentImage,
-                    image: hostelData['image_url'] ?? '',
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                  ),
                   onTap: () {
                     // Navigate to the details screen
                     Navigator.push(
@@ -307,6 +122,137 @@ class _HostelSearchState extends State<HostelSearch> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFilterDropdown() {
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.filter_list),
+      itemBuilder: (BuildContext context) {
+        return <PopupMenuEntry<String>>[
+          PopupMenuItem<String>(
+            value: 'WiFi',
+            child: CheckboxListTile(
+              title: Text('WiFi'),
+              value: selectedFacilities.contains('WiFi'),
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value != null) {
+                    if (value) {
+                      selectedFacilities.add('WiFi');
+                    } else {
+                      selectedFacilities.remove('WiFi');
+                    }
+                    applyFilterAndSort();
+                  }
+                });
+              },
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'Food',
+            child: CheckboxListTile(
+              title: Text('Food'),
+              value: selectedFacilities.contains('Food'),
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value != null) {
+                    if (value) {
+                      selectedFacilities.add('Food');
+                    } else {
+                      selectedFacilities.remove('Food');
+                    }
+                    applyFilterAndSort();
+                  }
+                });
+              },
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'AC',
+            child: CheckboxListTile(
+              title: Text('AC'),
+              value: selectedFacilities.contains('AC'),
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value != null) {
+                    if (value) {
+                      selectedFacilities.add('AC');
+                    } else {
+                      selectedFacilities.remove('AC');
+                    }
+                    applyFilterAndSort();
+                  }
+                });
+              },
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'Boys',
+            child: CheckboxListTile(
+              title: Text('Boys'),
+              value: selectedFacilities.contains('Boys'),
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value != null) {
+                    if (value) {
+                      selectedFacilities.add('Boys');
+                    } else {
+                      selectedFacilities.remove('Boys');
+                    }
+                    applyFilterAndSort();
+                  }
+                });
+              },
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: 'Girls',
+            child: CheckboxListTile(
+              title: Text('Girls'),
+              value: selectedFacilities.contains('Girls'),
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value != null) {
+                    if (value) {
+                      selectedFacilities.add('Girls');
+                    } else {
+                      selectedFacilities.remove('Girls');
+                    }
+                    applyFilterAndSort();
+                  }
+                });
+              },
+            ),
+          ),
+          // Add more filter options as needed
+        ];
+      },
+    );
+  }
+
+  Widget _buildSortDropdown() {
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.sort),
+      itemBuilder: (BuildContext context) {
+        return <PopupMenuEntry<String>>[
+          PopupMenuItem<String>(
+            value: 'Name',
+            child: Text('Sort by Name'),
+          ),
+          PopupMenuItem<String>(
+            value: 'Price',
+            child: Text('Sort by Price'),
+          ),
+          // Add more sort options as needed
+        ];
+      },
+      onSelected: (value) {
+        setState(() {
+          selectedSort = value!;
+          applyFilterAndSort();
+        });
+      },
     );
   }
 

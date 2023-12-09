@@ -3,23 +3,16 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hostel_app/logged_homepage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:location/location.dart';
-import 'package:hostel_app/logged_homepage.dart';
-import 'package:hostel_app/EditHostelDetails.dart';
 
-class HostelDetailsForm extends StatefulWidget {
-  final Map<String, dynamic>? existingData;
-  final bool isEditing;
-
-  HostelDetailsForm({Key? key, this.existingData, this.isEditing = false})
-      : super(key: key);
-
+class EditHostelDetailsForm extends StatefulWidget {
   @override
-  _HostelDetailsFormState createState() => _HostelDetailsFormState();
+  _EditHostelDetailsFormState createState() => _EditHostelDetailsFormState();
 }
 
-class _HostelDetailsFormState extends State<HostelDetailsForm> {
+class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController areaController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
@@ -33,133 +26,27 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
 
   // Image picker
   final ImagePicker _imagePicker = ImagePicker();
-  File? _image;
+  List<File> _images = [];
 
   // Location
   LocationData? _currentLocation;
-  List<File>? _images;
 
   // Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  bool hasHostelDetails = false;
-
   @override
   void initState() {
     super.initState();
-    // Check if the user has already entered hostel details
-    checkHostelDetails();
-  }
-
-  Future<void> checkHostelDetails() async {
-    try {
-      User? user = _auth.currentUser;
-      if (user != null) {
-        // Check if "Hostels" collection exists, and create it if not
-        CollectionReference hostels = _firestore.collection('hostels');
-        DocumentSnapshot document = await hostels.doc(user.uid).get();
-
-        if (document.exists) {
-          // Hostel details already exist
-          setState(() {
-            hasHostelDetails = true;
-          });
-          // Populate the fields with existing data if needed
-          // Example:
-          // nameController.text = document['name'];
-          // addressController.text = document['address'];
-          // capacityController.text = document['capacity'].toString();
-          // priceController.text = document['price'].toString();
-          // foodAvailabilityController.text = document['foodAvailability'];
-          // facilitiesController.text = document['facilities'];
-        }
-      }
-    } catch (e) {
-      print('Error checking hostel details: $e');
-    }
-  }
-
-  Future<void> addHostelDetails() async {
-    try {
-      User? user = _auth.currentUser;
-      if (user != null) {
-        // Check if "Hostels" collection exists, and create it if not
-        CollectionReference hostels = _firestore.collection('hostels');
-
-        List<String> imageUrls = [];
-
-        if (_images != null && _images!.isNotEmpty) {
-          for (int i = 0; i < _images!.length; i++) {
-            String imageFileName =
-                DateTime.now().millisecondsSinceEpoch.toString() + '_$i';
-
-            Reference storageReference = FirebaseStorage.instance
-                .ref()
-                .child('$imageFileName.jpg');
-            UploadTask uploadTask = storageReference.putFile(
-                _images![i], SettableMetadata(contentType: "image/jpeg/png"));
-
-            await uploadTask.whenComplete(() async {
-              String imageUrl = await storageReference.getDownloadURL();
-              imageUrls.add(imageUrl);
-            });
-          }
-        }
-
-        // Convert data to Map<String, dynamic>
-        Map<String, dynamic> hostelData = {
-          'name': nameController.text,
-          'area': areaController.text,
-          'address': addressController.text,
-          'contactNumber':contactNumberController.text,
-          'capacity': int.parse(capacityController.text),
-          'roomsAvailable': int.parse(roomsAvailableController.text),
-          'price': double.parse(priceController.text),
-          'foodAvailability': foodAvailabilityController.text,
-          'facilities': facilitiesController.text.split(','),
-          'image_urls': imageUrls,
-          'geopoint': _currentLocation != null
-              ? GeoPoint(
-              _currentLocation!.latitude!, _currentLocation!.longitude!)
-              : null,
-        };
-
-        // Add the document in the 'hostel' collection
-        await hostels.doc(user.uid).set(hostelData);
-
-        // Show a success message or navigate to the next screen
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Hostel details added successfully!'),
-          ),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const LoggedHomePage(),
-          ),
-        );
-      }
-    } catch (e, stackTrace) {
-      // Print detailed error information
-      print('Error adding hostel details: $e');
-      print('Stack trace: $stackTrace');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error adding hostel details. Please try again.'),
-        ),
-      );
-    }
+    // Fetch existing data and populate fields
+    fetchHostelData();
   }
 
   Future<void> _pickImage() async {
     try {
       List<XFile>? pickedFiles = await _imagePicker.pickMultiImage();
 
-
-      if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      if (pickedFiles != null) {
         setState(() {
           _images = pickedFiles.map((pickedFile) => File(pickedFile.path)).toList();
         });
@@ -169,22 +56,150 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
     }
   }
 
-
-  // Method to get current location
-  Future<void> _getCurrentLocation() async {
+  Future<void> fetchHostelData() async {
     try {
-      Location location = Location();
-      _currentLocation = await location.getLocation();
+      User? user = _auth.currentUser;
+      if (user != null) {
+        DocumentSnapshot document =
+        await _firestore.collection('hostels').doc(user.uid).get();
+
+        if (document.exists) {
+          // Populate fields with existing data
+          setState(() {
+            nameController.text = document['name'];
+            areaController.text = document['area'];
+            addressController.text = document['address'];
+            contactNumberController.text = document['contactNumber'];
+            capacityController.text = document['capacity'].toString();
+            roomsAvailableController.text =
+                document['roomsAvailable'].toString();
+            priceController.text = document['price'].toString();
+            foodAvailabilityController.text = document['foodAvailability'];
+            facilitiesController.text =
+                document['facilities'].join(', '); // Convert List to String
+            // You can add more fields as needed
+
+            // Image URLs and Geopoint (if available)
+            // Assuming 'image_urls' and 'geopoint' are the field names in Firestore
+            // Update these field names based on your Firestore schema
+            _images = document['image_urls'] != null
+                ? List<String>.from(document['image_urls'])
+                .map((imageUrl) => File(imageUrl))
+                .toList()
+                : [];
+            _currentLocation = document['geopoint'] != null
+                ? LocationData.fromMap({
+              'latitude': document['geopoint'].latitude,
+              'longitude': document['geopoint'].longitude,
+            })
+                : null;
+          });
+        }
+      }
     } catch (e) {
-      print('Error getting current location: $e');
+      print('Error fetching hostel data: $e');
     }
+  }
+
+  Future<void> _uploadImages() async {
+    try {
+      List<String> imageUrls = [];
+
+      if (_images != null && _images!.isNotEmpty) {
+        for (int i = 0; i < _images!.length; i++) {
+          String imageFileName = DateTime.now().millisecondsSinceEpoch.toString() + '_$i';
+
+          Reference storageReference = FirebaseStorage.instance.ref().child('$imageFileName.jpg');
+          UploadTask uploadTask = storageReference.putFile(_images![i], SettableMetadata(contentType: "image/jpeg/png"));
+
+          await uploadTask.whenComplete(() async {
+            String imageUrl = await storageReference.getDownloadURL();
+            imageUrls.add(imageUrl);
+          });
+        }
+
+
+
+      // Update the document in the 'hostel' collection with the image URLs
+        User? user = _auth.currentUser;
+        if (user != null) {
+          await _firestore.collection('hostels').doc(user.uid).update({
+            'image_urls': imageUrls,
+          });
+        }
+      }
+    } catch (e) {
+      print('Error uploading images: $e');
+    }
+  }
+
+
+  Future<void> editHostelDetails() async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        await _uploadImages(); // Upload images before updating details
+
+        CollectionReference hostels = _firestore.collection('hostels');
+
+        // Convert data to Map<String, dynamic>
+        Map<String, dynamic> updatedData = {
+          'name': nameController.text,
+          'area': areaController.text,
+          'address': addressController.text,
+          'contactNumber': contactNumberController.text,
+          'capacity': int.parse(capacityController.text),
+          'roomsAvailable': int.parse(roomsAvailableController.text),
+          'price': double.parse(priceController.text),
+          'foodAvailability': foodAvailabilityController.text,
+          'facilities': facilitiesController.text.split(','),
+          'image_urls': _images.map((image) => image.path).toList(),
+          'geopoint': _currentLocation != null
+              ? GeoPoint(
+              _currentLocation!.latitude!, _currentLocation!.longitude!)
+              : null,
+          // Update other fields as needed
+        };
+
+        // Update the document in the 'hostel' collection
+        await hostels.doc(user.uid).update(updatedData);
+
+        // Show a success message or navigate to the next screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hostel details updated successfully!'),
+          ),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoggedHomePage(),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      // Print detailed error information
+      print('Error updating hostel details: $e');
+      print('Stack trace: $stackTrace');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating hostel details. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    Location location = Location();
+    _currentLocation = await location.getLocation();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hostel Details'),
+        title: Text('Edit Hostel Details'),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -238,18 +253,33 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
               SizedBox(height: 16),
               TextField(
                 controller: facilitiesController,
-                decoration: InputDecoration(
-                    labelText: 'Facilities (Comma Separated)'),
+                decoration: InputDecoration(labelText: 'Facilities (Comma Separated)'),
               ),
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _pickImage,
                 child: Text('Pick Image'),
               ),
-              _image != null
-                  ? Image.file(
-                _image!,
-                height: 100,
+              _images.isNotEmpty
+                  ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Selected Images:'),
+                  SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: _images
+                        .map(
+                          (image) => Image.file(
+                        image,
+                        height: 80,
+                        width: 80, // Add this line to set the width
+                      ),
+                    )
+                        .toList(),
+                  ),
+                ],
               )
                   : Container(),
               SizedBox(height: 16),
@@ -258,8 +288,7 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
                   await _getCurrentLocation();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content:
-                      Text('Current location acquired successfully!'),
+                      content: Text('Current location acquired successfully!'),
                     ),
                   );
                 },
@@ -272,24 +301,13 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  hasHostelDetails ? editHostelDetails() : addHostelDetails();
+                  editHostelDetails();
                 },
-                child: Text(hasHostelDetails ? 'Edit Details' : 'Submit'),
+                child: Text('Update Details'),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Future<void> editHostelDetails() async {
-    // You can implement the logic to edit existing hostel details here
-    // For example, navigate to a new screen with pre-filled form fields
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditHostelDetailsForm(),
       ),
     );
   }

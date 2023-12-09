@@ -26,9 +26,9 @@ class _LoginWithPhoneNumberState extends State<LoginWithPhoneNumber> {
           children: [
             SizedBox(height: 80),
             TextFormField(
-              controller: phoneNumberController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: '+1 234 3455 234'),
+              controller: phoneNumberController ,
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(hintText: '+91'),
             ),
             SizedBox(height: 80),
             ElevatedButton(

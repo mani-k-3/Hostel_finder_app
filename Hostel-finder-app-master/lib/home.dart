@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hostel_app/login_page.dart';
 import 'package:hostel_app/HostelSearch.dart';
-
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -50,7 +51,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 16),
             _buildFeatureButtons(),
             const SizedBox(height: 16),
-            _buildImageSlider(),
+            _buildMap(),
           ],
         ),
       ),
@@ -248,84 +249,24 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildImageSlider() {
+  Widget _buildMap() {
     return Container(
       height: 200,
-      child: ImageSlider(),
-    );
-  }
-}
-
-class ImageSlider extends StatefulWidget {
-  const ImageSlider({Key? key}) : super(key: key);
-
-  @override
-  _ImageSliderState createState() => _ImageSliderState();
-}
-
-class _ImageSliderState extends State<ImageSlider> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-  final List<String> _imageList = [
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTeVG9ImXui80ezNeVduchR9GQOuPflAi3dhlzbbEzAuU_MLIgqm6OOzYbBBZISoa-4GmQ&usqp=CAU',
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOXrAMV74AUrRPOxN6RGyRXSmIeDCfRt7FEA&usqp=CAU',
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRZLdm-CBRPdijIXQG1ZGwtPtKWSzfMWF29VVLhbidZuh0wyS2yIvRaCfeY1BznOqZzTk&usqp=CAU',
-    // Add your image URLs or local paths here
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _startSlider();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _startSlider() {
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _currentPage =
-          (_currentPage < _imageList.length - 1) ? _currentPage + 1 : 0;
-          _pageController.animateToPage(
-            _currentPage,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeIn,
-          );
-        });
-        _startSlider();
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: _pageController,
-      itemCount: _imageList.length,
-      onPageChanged: (index) {
-        setState(() {
-          _currentPage = index;
-        });
-      },
-      itemBuilder: (BuildContext context, int index) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(12.0),
-          child: Image.network(
-            _imageList[index],
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return const Center(
-                child: Text('Error loading image'),
-              );
-            },
+      child: FlutterMap(
+        options: const MapOptions(
+          initialCenter: LatLng(16.48, 80.69),
+          initialZoom: 12.0,
+        ),
+        children: [
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           ),
-        );
-      },
+          //MarkerLayer(
+          //  markers: _buildMarkers(context, documents),
+         // ),
+        ],
+      ),
     );
   }
 }
+
