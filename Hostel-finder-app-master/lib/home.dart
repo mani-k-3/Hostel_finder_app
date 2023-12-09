@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hostel_app/login_page.dart';
 import 'package:hostel_app/HostelSearch.dart';
+
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -10,11 +11,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
- // String _searchResult = '';
 
   void performSearch(String query) {
-    // Navigate to HostelSearch screen with the search query
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => HostelSearch(searchQuery: query),
@@ -23,7 +21,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   void navigateToLoginPage() {
-    // Use Navigator to push the login page onto the screen.
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const LoginScreen(),
@@ -35,251 +32,233 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Disable back arrow
-        title: _isSearching
-            ? TextField(
-          controller: _searchController,
-          autofocus: true,
-          textInputAction: TextInputAction.search,
-          onSubmitted: (value) {
-            performSearch(value);
-          },
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            border: InputBorder.none,
-            hintText: 'Search for Hostels',
-            hintStyle: TextStyle(color: Colors.white),
-          ),
-        )
-            : const Text('Hostel Finder'),
+        automaticallyImplyLeading: false,
+        title: _buildSearchBar(),
         actions: <Widget>[
-          if (!_isSearching)
+          if (_searchController.text.isEmpty)
             IconButton(
               icon: const Icon(Icons.account_circle),
-              onPressed: () {
-                // Handle the sign-in action here.
-                navigateToLoginPage(); // Redirect to the login page.
-
-              },
+              onPressed: navigateToLoginPage,
             ),
-
         ],
       ),
-        body: Column(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            SizedBox(height: 16,),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0, vertical: 8.0),
-              child: TextField(
-                controller: _searchController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Search for Hostels',
-                ),
-                onSubmitted: (value) {
-                  performSearch(value);
-                },
-              ),
-            ),
-            SizedBox(height: 16,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Container(
-                  width: 150,
-                  height: 150,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('Login prompt'),
-                            content: Text('Please login for further'),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text('Close'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.cyan, // Change the background color here
-                    ),
-                    icon: Icon(Icons.favorite,color: Colors.redAccent,),
-                    label: Text('Favourite',style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18.0,
-                    ),),
-                  ),
-                ),
-                Container(
-                  width: 150,
-                  height: 150,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Handle Recent Viewed Hostels button press
-                    },
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.cyanAccent, // Change the background color here
-                    ),
-                    icon: Icon(Icons.remove_red_eye,color: Colors.black,),
-                    label: Text('Recent Views ',style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18.0,
-                    ),),
-                  ),
-                ),
-              ],
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child:Column(
-                  children: <Widget>[
-                    ImageSlider(),
-                    // Image slider added within the Column
-                  ],
-                ),
-              ),
-            ),
+            _buildSearchTextField(),
+            const SizedBox(height: 16),
+            _buildFeatureButtons(),
+            const SizedBox(height: 16),
+            _buildImageSlider(),
           ],
         ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 60.0), // Adjust padding
-          child:Container(
-            height: 50.0, // Adjust the height
-            width: 100.0, // Adjust the width
-            child: FloatingActionButton.extended(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text('Login prompt'),
-                      content: Text('Please login for further'),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: Text('Close'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-              label: const Text('Upload'),
-              icon: const Icon(Icons.add),
-              backgroundColor: Colors.blue, // Change the color as needed
-            ),
+      ),
+      floatingActionButton: _buildUploadButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return _searchController.text.isEmpty
+        ? const Text('Hostel Finder')
+        : TextField(
+      controller: _searchController,
+      autofocus: true,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (value) {
+        performSearch(value);
+      },
+      style: const TextStyle(color: Colors.white),
+      decoration: const InputDecoration(
+        border: InputBorder.none,
+        hintText: 'Search for Hostels',
+        hintStyle: TextStyle(color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildSearchTextField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          border: OutlineInputBorder(),
+          labelText: 'Search for Hostels',
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              performSearch(_searchController.text);
+            },
           ),
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        onSubmitted: (value) {
+          performSearch(value);
+        },
+      ),
+    );
+  }
 
-        bottomNavigationBar: PreferredSize(
-          preferredSize: Size.fromHeight(56.0),
-          child: Container(
-            color: Colors.blueAccent,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent,
-                    borderRadius: BorderRadius.circular(10.0), // Adjust the border radius as needed
-                    border: Border.all(
-                      color: Colors.blueAccent, // Set the border color
-                      width: 2.0, // Set the border width
-                    ),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.home),
+  Widget _buildFeatureButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildFeatureButton(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Login prompt'),
+                  content: const Text('Please login for further'),
+                  actions: [
+                    TextButton(
                       onPressed: () {
-
+                        Navigator.of(context).pop();
                       },
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent,
-                    borderRadius: BorderRadius.circular(10.0), // Adjust the border radius as needed
-                    border: Border.all(
-                      color: Colors.blueAccent, // Set the border color
-                      width: 2.0, // Set the border width
+                      child: const Text('Close'),
                     ),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.account_circle),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('Login prompt'),
-                            content: Text('Please login for further'),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text('Close'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                Container( decoration: BoxDecoration(
-                  color: Colors.blueAccent,
-                  borderRadius: BorderRadius.circular(10.0), // Adjust the border radius as needed
-                  border: Border.all(
-                    color: Colors.blueAccent, // Set the border color
-                    width: 2.0, // Set the border width
-                  ),
-                ),
-                  child: IconButton(
-                    icon: const Icon(Icons.settings),
-                    onPressed: () {
-                      // Handle Settings button press
-                    },
-                  ),
-                ),
-                Container( decoration: BoxDecoration(
-                  color: Colors.blueAccent,
-                  borderRadius: BorderRadius.circular(10.0), // Adjust the border radius as needed
-                  border: Border.all(
-                    color: Colors.blueAccent, // Set the border color
-                    width: 2.0, // Set the border width
-                  ),
-                ),
-                  child: IconButton(
-                    icon: const Icon(Icons.logout),
-                    onPressed: () {
+                  ],
+                );
+              },
+            );
+          },
+          icon: Icons.favorite_border,
+          label: 'Favourite',
+          backgroundColor: Colors.deepPurpleAccent, // Change the background color
+          labelColor: Colors.white, // Change the label color
+        ),
+        _buildFeatureButton(
+          onPressed: () {
+            // Handle Recent Viewed Hostels button press
+          },
+          icon: Icons.remove_red_eye,
+          label: 'Recent Views',
+          backgroundColor: Colors.lightBlueAccent, // Change the background color
+          labelColor: Colors.white, // Change the label color
+        ),
+      ],
+    );
+  }
 
-                    },
-                  ),
-                ),
-              ],
-            ),
+  Widget _buildFeatureButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+    required String label,
+    required Color backgroundColor,
+    required Color labelColor,
+  }) {
+    return SizedBox(
+      width: 150,
+      height: 100,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0), // Rounded edges
           ),
-        )
+          backgroundColor: backgroundColor,
+        ),
+        icon: Icon(icon, color: Colors.black),
+        label: Text(
+          label,
+          style: TextStyle(
+            color: labelColor,
+            fontSize: 18.0,
+          ),
+        ),
+      ),
+    );
+  }
 
+  Widget _buildUploadButton() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 60.0),
+      child: SizedBox(
+        height: 50.0,
+        width: 100.0,
+        child: FloatingActionButton.extended(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Login prompt'),
+                  content: const Text('Please login for further'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Close'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+          label: const Text('Upload'),
+          icon: const Icon(Icons.add),
+          backgroundColor: Colors.blue,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(56.0),
+      child: Container(
+        color: Colors.white,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavBarIcon(Icons.home),
+            _buildNavBarIcon(Icons.account_circle),
+            _buildNavBarIcon(Icons.settings),
+            _buildNavBarIcon(Icons.logout),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavBarIcon(IconData icon) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10.0),
+        border: Border.all(
+          color: Colors.white,
+          width: 2.0,
+        ),
+      ),
+      child: IconButton(
+        icon: Icon(icon),
+        onPressed: () {
+          if (icon == Icons.account_circle) {
+            navigateToLoginPage();
+          } else if (icon == Icons.logout) {
+            // Handle logout button press
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildImageSlider() {
+    return Container(
+      height: 200,
+      child: ImageSlider(),
     );
   }
 }
 
-
 class ImageSlider extends StatefulWidget {
+  const ImageSlider({Key? key}) : super(key: key);
+
   @override
   _ImageSliderState createState() => _ImageSliderState();
 }
@@ -314,7 +293,7 @@ class _ImageSliderState extends State<ImageSlider> {
           (_currentPage < _imageList.length - 1) ? _currentPage + 1 : 0;
           _pageController.animateToPage(
             _currentPage,
-            duration: Duration(milliseconds: 500),
+            duration: const Duration(milliseconds: 500),
             curve: Curves.easeIn,
           );
         });
@@ -325,27 +304,28 @@ class _ImageSliderState extends State<ImageSlider> {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: PageView.builder(
-        controller: _pageController,
-        itemCount: _imageList.length,
-        onPageChanged: (index) {
-          setState(() {
-            _currentPage = index;
-          });
-        },
-        itemBuilder: (BuildContext context, int index) {
-          return Image.network(
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: _imageList.length,
+      onPageChanged: (index) {
+        setState(() {
+          _currentPage = index;
+        });
+      },
+      itemBuilder: (BuildContext context, int index) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12.0),
+          child: Image.network(
             _imageList[index],
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              return Center(
+              return const Center(
                 child: Text('Error loading image'),
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
