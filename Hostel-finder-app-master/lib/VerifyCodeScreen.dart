@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:hostel_app/home.dart';
 import 'package:hostel_app/logged_homepage.dart';
 import 'package:hostel_app/utils.dart';
 

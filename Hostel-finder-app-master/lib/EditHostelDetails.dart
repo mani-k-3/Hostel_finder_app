@@ -23,17 +23,28 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
   final TextEditingController foodAvailabilityController =
   TextEditingController();
   final TextEditingController facilitiesController = TextEditingController();
-
+  String selectedGender = 'Boys';
   // Image picker
   final ImagePicker _imagePicker = ImagePicker();
   List<File> _images = [];
-
+  List<String> facilitiesList = [
+    'WiFi',
+    'Parking',
+    'AC',
+    'Gym',
+    'Cafeteria',
+    // Add more facilities as needed
+  ];
+  
+  final GlobalKey<State> _facilitiesDialogKey = GlobalKey<State>();
   // Location
   LocationData? _currentLocation;
 
   // Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  List<String> selectedFacilities = [];
 
   @override
   void initState() {
@@ -46,16 +57,13 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
     try {
       List<XFile>? pickedFiles = await _imagePicker.pickMultiImage();
 
-      if (pickedFiles != null) {
-        setState(() {
-          _images = pickedFiles.map((pickedFile) => File(pickedFile.path)).toList();
-        });
-      }
-    } catch (e) {
+      setState(() {
+        _images = pickedFiles.map((pickedFile) => File(pickedFile.path)).toList();
+      });
+        } catch (e) {
       print('Error picking images: $e');
     }
   }
-
   Future<void> fetchHostelData() async {
     try {
       User? user = _auth.currentUser;
@@ -75,13 +83,12 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
                 document['roomsAvailable'].toString();
             priceController.text = document['price'].toString();
             foodAvailabilityController.text = document['foodAvailability'];
-            facilitiesController.text =
-                document['facilities'].join(', '); // Convert List to String
+            // Convert List to String
+            selectedGender = document['for'];
             // You can add more fields as needed
-
-            // Image URLs and Geopoint (if available)
-            // Assuming 'image_urls' and 'geopoint' are the field names in Firestore
-            // Update these field names based on your Firestore schema
+            selectedFacilities = document['facilities'] != null
+                ? List<String>.from(document['facilities'])
+                : [];
             _images = document['image_urls'] != null
                 ? List<String>.from(document['image_urls'])
                 .map((imageUrl) => File(imageUrl))
@@ -101,16 +108,17 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
     }
   }
 
+
   Future<void> _uploadImages() async {
     try {
       List<String> imageUrls = [];
 
-      if (_images != null && _images!.isNotEmpty) {
-        for (int i = 0; i < _images!.length; i++) {
+      if (_images.isNotEmpty) {
+        for (int i = 0; i < _images.length; i++) {
           String imageFileName = DateTime.now().millisecondsSinceEpoch.toString() + '_$i';
 
           Reference storageReference = FirebaseStorage.instance.ref().child('$imageFileName.jpg');
-          UploadTask uploadTask = storageReference.putFile(_images![i], SettableMetadata(contentType: "image/jpeg/png"));
+          UploadTask uploadTask = storageReference.putFile(_images[i], SettableMetadata(contentType: "image/jpeg/png"));
 
           await uploadTask.whenComplete(() async {
             String imageUrl = await storageReference.getDownloadURL();
@@ -145,6 +153,7 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
         // Convert data to Map<String, dynamic>
         Map<String, dynamic> updatedData = {
           'name': nameController.text,
+          'for': selectedGender,
           'area': areaController.text,
           'address': addressController.text,
           'contactNumber': contactNumberController.text,
@@ -152,7 +161,7 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
           'roomsAvailable': int.parse(roomsAvailableController.text),
           'price': double.parse(priceController.text),
           'foodAvailability': foodAvailabilityController.text,
-          'facilities': facilitiesController.text.split(','),
+          'facilities': selectedFacilities,
           'image_urls': _images.map((image) => image.path).toList(),
           'geopoint': _currentLocation != null
               ? GeoPoint(
@@ -195,6 +204,61 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
     _currentLocation = await location.getLocation();
   }
 
+  Widget _buildFacilitiesDialog() {
+    return AlertDialog(
+      title: Text('Select Facilities'),
+      content: StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return SingleChildScrollView(
+            child: Column(
+              children: facilitiesList.map((facility) {
+                bool isSelected = selectedFacilities.contains(facility);
+                return CheckboxListTile(
+                  title: Text(facility),
+                  value: isSelected,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      if (value != null) {
+                        if (value && !selectedFacilities.contains(facility)) {
+                          selectedFacilities.add(facility);
+                        } else if (!value &&
+                            selectedFacilities.contains(facility)) {
+                          selectedFacilities.remove(facility);
+                        }
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          );
+        },
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            setState(() {
+              selectedFacilities.clear();
+            });
+            Navigator.of(context).pop();
+          },
+          child: Text('Clear Selection'),
+        ),
+        TextButton(
+          onPressed: () async {
+            // Close the dialog and show the selected facilities
+            Navigator.of(context).pop();
+           // _showSelectedFacilitiesSnackBar();
+          },
+          child: Text('Done'),
+        ),
+      ],
+    );
+  }
+
+
+
+  @override
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -207,12 +271,33 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
+              TextFormField(
                 controller: nameController,
                 decoration: InputDecoration(labelText: 'Hostel Name'),
               ),
               SizedBox(height: 16),
-              TextField(
+              DropdownButtonFormField<String>(
+                value: selectedGender,
+                items: ['Boys', 'Girls'].map((gender) {
+                  return DropdownMenuItem<String>(
+                    value: gender,
+                    child: Text(gender),
+                  );
+                }).toList(),
+                onChanged: (String? value) {
+                  if (value != null) {
+                    setState(() {
+                      selectedGender = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'FOR',
+                  labelStyle: TextStyle(fontSize: 16.0),
+                ),
+              ),
+              SizedBox(height: 16),
+              TextFormField(
                 controller: areaController,
                 decoration: InputDecoration(labelText: 'Area'),
               ),
@@ -251,10 +336,16 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
                 decoration: InputDecoration(labelText: 'Food Availability'),
               ),
               SizedBox(height: 16),
-              TextField(
-                controller: facilitiesController,
-                decoration: InputDecoration(labelText: 'Facilities (Comma Separated)'),
+              TextButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => _buildFacilitiesDialog(),
+                  );
+                },
+                child: Text('Select Facilities'),
               ),
+
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _pickImage,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:transparent_image/transparent_image.dart';
 import 'package:hostel_app/HostelDetails.dart';
 
 class HostelSearch extends StatefulWidget {
@@ -31,19 +30,29 @@ class _HostelSearchState extends State<HostelSearch> {
 
   Future<void> searchHostels(String area) async {
     try {
+      // Convert the search criteria to lowercase and trim trailing spaces
+      String lowercaseArea = area.toLowerCase().trim();
+
       QuerySnapshot querySnapshot = await _firestore
           .collection('hostels')
-          .where('area', isEqualTo: area)
           .get();
 
+      List<DocumentSnapshot> allHostels = querySnapshot.docs;
+
+      // Filter hostels based on the lowercase search criteria
+      List<DocumentSnapshot> filteredHostels = allHostels
+          .where((hostel) => hostel['area'].toLowerCase().trim() == lowercaseArea)
+          .toList();
+
       setState(() {
-        searchResults = querySnapshot.docs;
+        searchResults = filteredHostels;
         applyFilterAndSort();
       });
     } catch (e) {
       print('Error searching hostels: $e');
     }
   }
+
 
   void applyFilterAndSort() {
     // Apply filter
@@ -249,7 +258,7 @@ class _HostelSearchState extends State<HostelSearch> {
       },
       onSelected: (value) {
         setState(() {
-          selectedSort = value!;
+          selectedSort = value;
           applyFilterAndSort();
         });
       },

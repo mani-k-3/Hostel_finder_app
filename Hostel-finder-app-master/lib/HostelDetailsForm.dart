@@ -12,6 +12,9 @@ class HostelDetailsForm extends StatefulWidget {
   final Map<String, dynamic>? existingData;
   final bool isEditing;
 
+
+
+
   HostelDetailsForm({Key? key, this.existingData, this.isEditing = false})
       : super(key: key);
 
@@ -30,10 +33,11 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
   final TextEditingController foodAvailabilityController =
   TextEditingController();
   final TextEditingController facilitiesController = TextEditingController();
-
+  final GlobalKey<State> _facilitiesDialogKey = GlobalKey<State>();
   // Image picker
   final ImagePicker _imagePicker = ImagePicker();
   File? _image;
+  String selectedGender = 'Boys';
 
   // Location
   LocationData? _currentLocation;
@@ -44,6 +48,18 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   bool hasHostelDetails = false;
+
+  // List of facilities
+  List<String> facilitiesList = [
+    'WiFi',
+    'Parking',
+    'AC',
+    'Gym',
+    'Cafeteria',
+    // Add more facilities as needed
+  ];
+
+  List<String> selectedFacilities = [];
 
   @override
   void initState() {
@@ -61,18 +77,10 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
         DocumentSnapshot document = await hostels.doc(user.uid).get();
 
         if (document.exists) {
-          // Hostel details already exist
           setState(() {
             hasHostelDetails = true;
           });
-          // Populate the fields with existing data if needed
-          // Example:
-          // nameController.text = document['name'];
-          // addressController.text = document['address'];
-          // capacityController.text = document['capacity'].toString();
-          // priceController.text = document['price'].toString();
-          // foodAvailabilityController.text = document['foodAvailability'];
-          // facilitiesController.text = document['facilities'];
+
         }
       }
     } catch (e) {
@@ -90,6 +98,7 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
         List<String> imageUrls = [];
 
         if (_images != null && _images!.isNotEmpty) {
+          // Upload images to Firebase Storage and get download URLs
           for (int i = 0; i < _images!.length; i++) {
             String imageFileName =
                 DateTime.now().millisecondsSinceEpoch.toString() + '_$i';
@@ -110,14 +119,15 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
         // Convert data to Map<String, dynamic>
         Map<String, dynamic> hostelData = {
           'name': nameController.text,
+          'for': selectedGender,
           'area': areaController.text,
           'address': addressController.text,
-          'contactNumber':contactNumberController.text,
+          'contactNumber': contactNumberController.text,
           'capacity': int.parse(capacityController.text),
           'roomsAvailable': int.parse(roomsAvailableController.text),
           'price': double.parse(priceController.text),
           'foodAvailability': foodAvailabilityController.text,
-          'facilities': facilitiesController.text.split(','),
+          'facilities': selectedFacilities, // Use the selectedFacilities list
           'image_urls': imageUrls,
           'geopoint': _currentLocation != null
               ? GeoPoint(
@@ -158,17 +168,16 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
     try {
       List<XFile>? pickedFiles = await _imagePicker.pickMultiImage();
 
-
-      if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      if (pickedFiles.isNotEmpty) {
         setState(() {
-          _images = pickedFiles.map((pickedFile) => File(pickedFile.path)).toList();
+          _images =
+              pickedFiles.map((pickedFile) => File(pickedFile.path)).toList();
         });
       }
     } catch (e) {
       print('Error picking images: $e');
     }
   }
-
 
   // Method to get current location
   Future<void> _getCurrentLocation() async {
@@ -179,6 +188,68 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
       print('Error getting current location: $e');
     }
   }
+
+  Widget _buildFacilitiesDialog() {
+    return AlertDialog(
+      title: Text('Select Facilities'),
+
+      content: StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return SingleChildScrollView(
+            child: Column(
+              children: facilitiesList.map((facility) {
+                bool isSelected = selectedFacilities.contains(facility);
+                return CheckboxListTile(
+                  title: Text(facility),
+                  value: isSelected,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      if (value != null) {
+                        if (value && !selectedFacilities.contains(facility)) {
+                          selectedFacilities.add(facility);
+                        } else if (!value &&
+                            selectedFacilities.contains(facility)) {
+                          selectedFacilities.remove(facility);
+                        }
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          );
+        },
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            setState(() {
+              selectedFacilities.clear();
+            });
+            Navigator.of(context).pop();
+          },
+          child: Text('Clear Selection'),
+        ),
+        TextButton(
+          onPressed: () async {
+            // Close the dialog and show the selected facilities
+            Navigator.of(context).pop();
+           _showSelectedFacilitiesSnackBar();
+          },
+          child: Text('Done'),
+        ),
+      ],
+    );
+  }
+  void _showSelectedFacilitiesSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Selected Facilities: ${selectedFacilities.join(', ')}'),
+      ),
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -192,83 +263,143 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
+              // Hostel Name
+              TextFormField(
                 controller: nameController,
                 decoration: InputDecoration(labelText: 'Hostel Name'),
+
               ),
+
+              // Hostel Gender (Boys/Girls)
               SizedBox(height: 16),
-              TextField(
+              DropdownButtonFormField<String>(
+                value: selectedGender,
+                items: ['Boys', 'Girls'].map((gender) {
+                  return DropdownMenuItem<String>(
+                    value: gender,
+                    child: Text(gender),
+                  );
+                }).toList(),
+                onChanged: (String? value) {
+                  if (value != null) {
+                    setState(() {
+                      selectedGender = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'FOR',
+                  labelStyle: TextStyle(fontSize: 16.0), // Set the font size
+                ),
+              ),
+
+              // Hostel Area
+              SizedBox(height: 16),
+              TextFormField(
                 controller: areaController,
-                decoration: InputDecoration(labelText: 'Area'),
+                decoration: InputDecoration(labelText: 'Hostel Area'),
+
               ),
+
+              // Hostel Address
               SizedBox(height: 16),
-              TextField(
+              TextFormField(
                 controller: addressController,
                 decoration: InputDecoration(labelText: 'Hostel Address'),
+
               ),
+
+              // Hostel Contact Number
               SizedBox(height: 16),
-              TextField(
+              TextFormField(
                 controller: contactNumberController,
+                decoration: InputDecoration(labelText: 'Hostel Contact Number'),
                 keyboardType: TextInputType.phone,
-                decoration: InputDecoration(labelText: 'Contact Number'),
+
               ),
+
+              // Hostel Capacity
               SizedBox(height: 16),
-              TextField(
+              TextFormField(
                 controller: capacityController,
+                decoration: InputDecoration(labelText: 'Hostel Capacity'),
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Capacity'),
+
               ),
+
+              // Rooms Available
               SizedBox(height: 16),
-              TextField(
+              TextFormField(
                 controller: roomsAvailableController,
-                keyboardType: TextInputType.number,
                 decoration: InputDecoration(labelText: 'Rooms Available'),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: priceController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Hostel Price'),
+
               ),
+
+              // Price
               SizedBox(height: 16),
-              TextField(
+              TextFormField(
+                controller: priceController,
+                decoration: InputDecoration(labelText: 'Price per Room'),
+                keyboardType: TextInputType.number,
+
+              ),
+
+              // Food Availability
+              SizedBox(height: 16),
+              TextFormField(
                 controller: foodAvailabilityController,
                 decoration: InputDecoration(labelText: 'Food Availability'),
+
               ),
+
+              // Facilities selection
               SizedBox(height: 16),
-              TextField(
-                controller: facilitiesController,
-                decoration: InputDecoration(
-                    labelText: 'Facilities (Comma Separated)'),
+              TextButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => _buildFacilitiesDialog(),
+                  );
+                },
+                child: Text('Select Facilities'),
               ),
+              SizedBox(height: 8),
+              Text('Selected Facilities: ${selectedFacilities.join(', ')}'),
+
+              // Hostel Images
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _pickImage,
-                child: Text('Pick Image'),
+                child: Text('Pick Hostel Images'),
               ),
-              _image != null
-                  ? Image.file(
-                _image!,
-                height: 100,
+              SizedBox(height: 8),
+              _images != null && _images!.isNotEmpty
+                  ? Column(
+                children: _images!
+                    .map(
+                      (image) => Image.file(
+                    image,
+                    height: 100,
+                  ),
+                )
+                    .toList(),
               )
                   : Container(),
+
+              // Location
               SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () async {
-                  await _getCurrentLocation();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                      Text('Current location acquired successfully!'),
-                    ),
-                  );
-                },
+                onPressed: _getCurrentLocation,
                 child: Text('Get Current Location'),
               ),
+              SizedBox(height: 8),
               _currentLocation != null
                   ? Text(
                   'Current Location: ${_currentLocation!.latitude}, ${_currentLocation!.longitude}')
                   : Container(),
+
+              // Save Button
               SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
@@ -283,14 +414,15 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
     );
   }
 
-  Future<void> editHostelDetails() async {
-    // You can implement the logic to edit existing hostel details here
-    // For example, navigate to a new screen with pre-filled form fields
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditHostelDetailsForm(),
-      ),
-    );
-  }
+
+Future<void> editHostelDetails() async {
+  // You can implement the logic to edit existing hostel details here
+  // For example, navigate to a new screen with pre-filled form fields
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => EditHostelDetailsForm(),
+    ),
+  );
+}
 }

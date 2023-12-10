@@ -47,8 +47,7 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
   }
 
   void navigateToUploadPage() {
-    // Handle navigation to the upload page here
-    // For example:
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => HostelDetailsForm()),
@@ -220,12 +219,18 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
         icon: Icon(icon),
         onPressed: () {
           if (icon == Icons.account_circle) {
-            ProfilePage();
+              Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfilePage()),
+            );
           } else if (icon == Icons.logout) {
             signOut();
           }
           else if (icon == Icons.settings) {
-            SettingsPage();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SettingsPage()),
+            );
           }
 
         },

@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hostel_app/AuthProvider.dart';
 import 'package:hostel_app/MobileAuth.dart';
-import 'package:hostel_app/home.dart';
 import 'package:hostel_app/logged_homepage.dart';
 import 'package:hostel_app/signup.dart';
 
