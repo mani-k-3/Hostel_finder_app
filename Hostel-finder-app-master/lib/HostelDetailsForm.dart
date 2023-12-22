@@ -364,8 +364,8 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
                 },
                 child: Text('Select Facilities'),
               ),
-              SizedBox(height: 8),
-              Text('Selected Facilities: ${selectedFacilities.join(', ')}'),
+              //SizedBox(height: 8),
+              //Text('Selected Facilities: ${selectedFacilities.join(', ')}'),
 
               // Hostel Images
               SizedBox(height: 16),

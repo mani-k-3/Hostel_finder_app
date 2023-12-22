@@ -10,6 +10,37 @@ class HostelSearch extends StatefulWidget {
   @override
   _HostelSearchState createState() => _HostelSearchState();
 }
+class _FilterCheckboxTile extends StatefulWidget {
+  final String title;
+  final bool value;
+  final Function(bool) onChanged;
+
+  const _FilterCheckboxTile({
+    Key? key,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  }) : super(key: key);
+
+  @override
+  _FilterCheckboxTileState createState() => _FilterCheckboxTileState();
+}
+class _FilterCheckboxTileState extends State<_FilterCheckboxTile> {
+  @override
+  Widget build(BuildContext context) {
+    return CheckboxListTile(
+      title: Text(widget.title),
+      value: widget.value,
+      onChanged: (bool? value) {
+        setState(() {
+          if (value != null) {
+            widget.onChanged(value);
+          }
+        });
+      },
+    );
+  }
+}
 
 class _HostelSearchState extends State<HostelSearch> {
   final TextEditingController searchController = TextEditingController();
@@ -28,30 +59,55 @@ class _HostelSearchState extends State<HostelSearch> {
     searchHostels(widget.searchQuery);
   }
 
-  Future<void> searchHostels(String area) async {
+  Future<void> searchHostels(String query) async {
     try {
       // Convert the search criteria to lowercase and trim trailing spaces
-      String lowercaseArea = area.toLowerCase().trim();
+      String lowercaseQuery = query.toLowerCase().trim();
 
       QuerySnapshot querySnapshot = await _firestore
           .collection('hostels')
+          .where('name', isGreaterThanOrEqualTo: lowercaseQuery)
+          .where('name', isLessThan: lowercaseQuery + 'z')
           .get();
 
-      List<DocumentSnapshot> allHostels = querySnapshot.docs;
+      List<DocumentSnapshot> nameMatches = querySnapshot.docs;
 
-      // Filter hostels based on the lowercase search criteria
-      List<DocumentSnapshot> filteredHostels = allHostels
-          .where((hostel) => hostel['area'].toLowerCase().trim() == lowercaseArea)
-          .toList();
+      // If no matches were found by name, try searching by area
+      if (nameMatches.isEmpty) {
+        querySnapshot = await _firestore
+            .collection('hostels')
+            .where('area', isGreaterThanOrEqualTo: lowercaseQuery)
+            .where('area', isLessThan: lowercaseQuery + 'z')
+            .get();
+
+        nameMatches = querySnapshot.docs;
+      }
+
+      // If no matches were found by area, try searching by address
+      if (nameMatches.isEmpty) {
+        querySnapshot = await _firestore
+            .collection('hostels')
+            .where('address', isGreaterThanOrEqualTo: lowercaseQuery)
+            .where('address', isLessThan: lowercaseQuery + 'z')
+            .get();
+
+        // Filter the results to include only those with a substring match
+        nameMatches = querySnapshot.docs
+            .where((doc) =>
+        doc['address'] != null &&
+            doc['address'].toString().toLowerCase().contains(lowercaseQuery))
+            .toList();
+      }
 
       setState(() {
-        searchResults = filteredHostels;
+        searchResults = nameMatches;
         applyFilterAndSort();
       });
     } catch (e) {
       print('Error searching hostels: $e');
     }
   }
+
 
 
   void applyFilterAndSort() {
@@ -141,8 +197,8 @@ class _HostelSearchState extends State<HostelSearch> {
         return <PopupMenuEntry<String>>[
           PopupMenuItem<String>(
             value: 'WiFi',
-            child: CheckboxListTile(
-              title: Text('WiFi'),
+            child: _FilterCheckboxTile(
+              title: 'WiFi',
               value: selectedFacilities.contains('WiFi'),
               onChanged: (bool? value) {
                 setState(() {
@@ -160,8 +216,8 @@ class _HostelSearchState extends State<HostelSearch> {
           ),
           PopupMenuItem<String>(
             value: 'Food',
-            child: CheckboxListTile(
-              title: Text('Food'),
+            child: _FilterCheckboxTile(
+              title: 'Food',
               value: selectedFacilities.contains('Food'),
               onChanged: (bool? value) {
                 setState(() {
@@ -179,8 +235,8 @@ class _HostelSearchState extends State<HostelSearch> {
           ),
           PopupMenuItem<String>(
             value: 'AC',
-            child: CheckboxListTile(
-              title: Text('AC'),
+            child: _FilterCheckboxTile(
+              title: 'AC',
               value: selectedFacilities.contains('AC'),
               onChanged: (bool? value) {
                 setState(() {
@@ -198,8 +254,8 @@ class _HostelSearchState extends State<HostelSearch> {
           ),
           PopupMenuItem<String>(
             value: 'Boys',
-            child: CheckboxListTile(
-              title: Text('Boys'),
+            child: _FilterCheckboxTile(
+              title: 'Boys',
               value: selectedFacilities.contains('Boys'),
               onChanged: (bool? value) {
                 setState(() {
@@ -217,8 +273,8 @@ class _HostelSearchState extends State<HostelSearch> {
           ),
           PopupMenuItem<String>(
             value: 'Girls',
-            child: CheckboxListTile(
-              title: Text('Girls'),
+            child: _FilterCheckboxTile(
+              title: 'Girls',
               value: selectedFacilities.contains('Girls'),
               onChanged: (bool? value) {
                 setState(() {

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hostel_app/settings_page.dart';
 import 'package:hostel_app/HostelDetailsForm.dart';
@@ -8,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'home.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 
 class LoggedHomePage extends StatefulWidget {
   const LoggedHomePage({Key? key}) : super(key: key);
@@ -19,8 +21,44 @@ class LoggedHomePage extends StatefulWidget {
 class _LoggedHomePageState extends State<LoggedHomePage> {
   final TextEditingController _searchController = TextEditingController();
 
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  //final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  double $lat = 0.0;
+  double $long = 0.0;
 
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getDocuments() async {
+    QuerySnapshot<Map<String, dynamic>> snapshot =
+    await FirebaseFirestore.instance.collection('hostels').get();
+    return snapshot.docs;
+  }
+
+  void initState() {
+    super.initState();
+    getCurrentLocation();
+  }
+
+  Future<void> getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location is disabled');
+    }
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permission denied');
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('Location permissions are permanently denied');
+    }
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low);
+    setState(() {
+      $lat = position.latitude;
+      $long = position.longitude;
+    });
+  }
   void performSearch(String query) {
     // Navigate to HostelSearch screen with the search query
     Navigator.of(context).push(
@@ -53,6 +91,21 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
       MaterialPageRoute(builder: (context) => HostelDetailsForm()),
     );
   }
+  Widget build1(BuildContext context) {
+    return FutureBuilder(
+      future: getDocuments(),
+      builder: (context, AsyncSnapshot<
+          List<QueryDocumentSnapshot<Map<String, dynamic>>>> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else {
+          return _buildMap(context, snapshot.data!, $lat, $long);
+        }
+      },
+    );
+  }
 
 
   @override
@@ -71,7 +124,7 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
             const SizedBox(height: 16),
             _buildFeatureButtons(),
             const SizedBox(height: 16),
-            _buildMap(),
+            build1(context),
           ],
         ),
       ),
@@ -238,23 +291,111 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
     );
   }
 
-  Widget _buildMap() {
+  Widget _buildMap(context,List<QueryDocumentSnapshot<Map<String, dynamic>>> documents, double lat,double long) {
+    double lat0 = lat;
+    double long0 = long;
     return Container(
-      height: 200,
+      height: 500,
       child: FlutterMap(
-        options: const MapOptions(
-          initialCenter: LatLng(16.48, 80.69),
+        options: MapOptions(
+          initialCenter: LatLng(lat, long), // Remove the 'const' keyword here
           initialZoom: 12.0,
         ),
         children: [
           TileLayer(
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           ),
-          //MarkerLayer(
-          //  markers: _buildMarkers(context, documents),
-          // ),
+          MarkerLayer(
+            markers: [
+              Marker(
+                width: 40.0,
+                height: 40.0,
+                point: LatLng(lat0, long0),
+                child: const Icon(
+                  Icons.person_pin,
+                  color: Colors.blue,
+                  size: 35.0,
+                ),
+              ),
+            ],
+          ),
+          MarkerLayer(
+            markers: _buildMarkers(context, documents),
+          ),
         ],
       ),
+    );
+  }
+  List<Marker> _buildMarkers(BuildContext context, List<QueryDocumentSnapshot<Map<String, dynamic>>> documents) {
+    return documents.map((document) {
+      var geoTag = document['geopoint'];
+      if (geoTag is GeoPoint) {
+        var latitude = geoTag.latitude;
+        var longitude = geoTag.longitude;
+
+        return Marker(
+          width: 40.0,
+          height: 40.0,
+          point: LatLng(latitude, longitude),
+          child: IconButton(
+            icon: const Icon(Icons.location_pin),
+            color: Colors.red,
+            onPressed: () {
+              _showDocumentDetails(context, document.data());
+            },
+          ),
+        );
+      } else {
+        return const Marker(
+          width: 0.0,
+          height: 0.0,
+          point: LatLng(0, 0),
+          child: Icon(
+            Icons.wrong_location_outlined,
+            color: Colors.blue,
+            size: 35.0,
+          ),
+        );
+      }
+    }).toList();
+  }
+  void _showDocumentDetails(BuildContext context,
+      Map<String, dynamic> documentData) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Hostel Details'),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Hostel Name: ${documentData['name']}'),
+              Text('Phone Number: ${documentData['contactNumber']}'),
+              Text('For: ${documentData['for']}'),
+              Text('Address: ${documentData['address']}'),
+              Text('Price: ${documentData['price']}'),
+              Text('Room Available: ${documentData['roomAvailable']}'),
+              Text('GeoTag: ${documentData['geopoint']}'),
+              Text('Facilities: ${documentData['facilities']}'),
+              Text('Food Available: ${documentData['foodAvailability']}'),
+              SizedBox(height: 10.0),
+              Text('Note:'),
+              Text('For more details search the Hostel name or Area in search bar'),
+
+
+            ],
+
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
