@@ -10,6 +10,7 @@ import 'home.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:hostel_app/HostelDetails.dart';
 
 class LoggedHomePage extends StatefulWidget {
   const LoggedHomePage({Key? key}) : super(key: key);
@@ -24,6 +25,7 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
   //final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   double $lat = 0.0;
   double $long = 0.0;
+  late MapController _mapController;
 
 
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getDocuments() async {
@@ -34,6 +36,7 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
 
   void initState() {
     super.initState();
+    _mapController = MapController();
     getCurrentLocation();
   }
 
@@ -128,8 +131,7 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
           ],
         ),
       ),
-      floatingActionButton: _buildUploadButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
@@ -176,10 +178,13 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
         ),
         _buildFeatureButton(
           onPressed: () {
-            // Handle Recent Viewed Hostels button press
-          },
-          icon: Icons.remove_red_eye,
-          label: 'Recent Views',
+              Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => HostelDetailsForm()),
+              );
+              },
+          icon: Icons.add,
+          label: 'Upload',
           backgroundColor: Colors.lightBlueAccent, // Change the background color
           labelColor: Colors.white, // Change the label color
         ),
@@ -217,28 +222,7 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
     );
   }
 
-  Widget _buildUploadButton() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 60.0),
-      child: SizedBox(
-        height: 50.0,
-        width: 100.0,
-        child: FloatingActionButton.extended(
-          onPressed: () {
 
-
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => HostelDetailsForm()),
-            );
-          },
-          label: const Text('Upload'),
-          icon: const Icon(Icons.add),
-          backgroundColor: Colors.blue,
-        ),
-      ),
-    );
-  }
 
   Widget _buildBottomNavigationBar() {
     return PreferredSize(
@@ -291,40 +275,66 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
     );
   }
 
-  Widget _buildMap(context,List<QueryDocumentSnapshot<Map<String, dynamic>>> documents, double lat,double long) {
+  Widget _buildMap(
+      context,
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
+      double lat,
+      double long,
+      ) {
     double lat0 = lat;
     double long0 = long;
     return Container(
-      height: 500,
-      child: FlutterMap(
-        options: MapOptions(
-          initialCenter: LatLng(lat, long), // Remove the 'const' keyword here
-          initialZoom: 12.0,
-        ),
+      height: 440,
+      child: Stack(
         children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          ),
-          MarkerLayer(
-            markers: [
-              Marker(
-                width: 40.0,
-                height: 40.0,
-                point: LatLng(lat0, long0),
-                child: const Icon(
-                  Icons.person_pin,
-                  color: Colors.blue,
-                  size: 35.0,
-                ),
+          FlutterMap(
+            options: MapOptions(
+              center: LatLng(lat, long),
+              zoom: 12.0,
+            ),
+            mapController: _mapController,
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    width: 40.0,
+                    height: 40.0,
+                    point: LatLng(lat0, long0),
+                    child: const Icon(
+                      Icons.person_pin,
+                      color: Colors.blue,
+                      size: 35.0,
+                    ),
+                  ),
+                ],
+              ),
+              MarkerLayer(
+                markers: _buildMarkers(context, documents),
               ),
             ],
           ),
-          MarkerLayer(
-            markers: _buildMarkers(context, documents),
+          Positioned(
+            bottom: 16.0,
+            right: 16.0,
+            child: FloatingActionButton(
+              onPressed: () {
+                _goToCurrentLocation(lat, long);
+              },
+              child: Icon(Icons.my_location),
+            ),
           ),
         ],
       ),
     );
+  }
+
+
+
+  void _goToCurrentLocation(double lat, double long) {
+    _mapController.move(LatLng(lat, long), 12.0);
   }
   List<Marker> _buildMarkers(BuildContext context, List<QueryDocumentSnapshot<Map<String, dynamic>>> documents) {
     return documents.map((document) {
@@ -378,9 +388,21 @@ class _LoggedHomePageState extends State<LoggedHomePage> {
               Text('GeoTag: ${documentData['geopoint']}'),
               Text('Facilities: ${documentData['facilities']}'),
               Text('Food Available: ${documentData['foodAvailability']}'),
-              SizedBox(height: 10.0),
-              Text('Note:'),
-              Text('For more details search the Hostel name or Area in search bar'),
+              SizedBox(height: 16.0),
+              Text('For More Details:'),
+              SizedBox(height:10.0),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HostelDetailsScreen(hostelData: documentData),
+                    ),
+                  );
+                },
+
+                child: Text('View Details'),
+              ),
 
 
             ],

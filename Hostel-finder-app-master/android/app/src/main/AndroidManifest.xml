@@ -3,7 +3,7 @@
     android:versionCode="1"
     android:versionName="TODO">
     <application
-        android:label="hostel_app"
+        android:label="Hostel Finder"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -18,6 +18,9 @@ class _HomePageState extends State<HomePage> {
   double $lat = 0.0;
   double $long = 0.0;
   bool isLoggedIn = false; // Track login status
+  late MapController _mapController;
+
+
 
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getDocuments() async {
     QuerySnapshot<Map<String, dynamic>> snapshot =
@@ -27,8 +30,12 @@ class _HomePageState extends State<HomePage> {
 
   void initState() {
     super.initState();
+    _mapController = MapController();
     getCurrentLocation();
   }
+
+
+
 
   Future<void> getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -110,8 +117,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      floatingActionButton: _buildUploadButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
@@ -187,9 +193,27 @@ class _HomePageState extends State<HomePage> {
           labelColor: Colors.white,
         ),
         _buildFeatureButton(
-          onPressed: () {},
-          icon: Icons.remove_red_eye,
-          label: 'Recent Views',
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Login prompt'),
+                  content: const Text('Please login for further'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Close'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+          icon: Icons.add,
+          label: 'Upload',
           backgroundColor: Colors.lightBlueAccent,
           labelColor: Colors.white,
         ),
@@ -227,39 +251,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildUploadButton() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 60.0),
-      child: SizedBox(
-        height: 50.0,
-        width: 100.0,
-        child: FloatingActionButton.extended(
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Login prompt'),
-                  content: const Text('Please login for further'),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Close'),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-          label: const Text('Upload'),
-          icon: const Icon(Icons.add),
-          backgroundColor: Colors.blue,
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildBottomNavigationBar() {
     return PreferredSize(
@@ -311,37 +303,59 @@ class _HomePageState extends State<HomePage> {
     double lat0 = lat;
     double long0 = long;
     return Container(
-      height: 500,
-      child: FlutterMap(
-        options: MapOptions(
-          initialCenter: LatLng(lat, long),
-          initialZoom: 12.0,
-        ),
+      height: 440,
+      child: Stack(
         children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          ),
-          MarkerLayer(
-            markers: [
-              Marker(
-                width: 40.0,
-                height: 40.0,
-                point: LatLng(lat0, long0),
-                child: const Icon(
-                  Icons.person_pin,
-                  color: Colors.blue,
-                  size: 35.0,
-                ),
+          FlutterMap(
+            options: MapOptions(
+              center: LatLng(lat, long),
+              zoom: 12.0,
+            ),
+            mapController: _mapController,
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    width: 40.0,
+                    height: 40.0,
+                    point: LatLng(lat0, long0),
+                    child: const Icon(
+                      Icons.person_pin,
+                      color: Colors.blue,
+                      size: 35.0,
+                    ),
+                  ),
+                ],
+              ),
+              MarkerLayer(
+                markers: _buildMarkers(context, documents),
               ),
             ],
           ),
-          MarkerLayer(
-            markers: _buildMarkers(context, documents),
+          Positioned(
+            bottom: 16.0,
+            right: 16.0,
+            child: FloatingActionButton(
+              onPressed: () {
+                _goToCurrentLocation(lat, long);
+              },
+              child: Icon(Icons.my_location),
+            ),
           ),
         ],
       ),
     );
   }
+
+
+
+  void _goToCurrentLocation(double lat, double long) {
+    _mapController.move(LatLng(lat, long), 12.0);
+  }
+
 
   List<Marker> _buildMarkers(
       BuildContext context,

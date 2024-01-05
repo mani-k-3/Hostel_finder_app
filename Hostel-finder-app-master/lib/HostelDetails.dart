@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
-import 'package:map_launcher/map_launcher.dart';
-
+import 'package:url_launcher/url_launcher_string.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HostelDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> hostelData;
@@ -28,9 +28,16 @@ class _HostelDetailsScreenState extends State<HostelDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hostel Details'),
+        title: Text(
+          'Hostel Details',
+          style: TextStyle(
+            fontSize: 20.0,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
       ),
-      body: Column(
+      body:Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
@@ -61,26 +68,69 @@ class _HostelDetailsScreenState extends State<HostelDetailsScreen> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: Colors.blue,
                   ),
                 ),
                 SizedBox(height: 8),
-                Text('Address: ${widget.hostelData['address']}'),
+                Text(
+                  'Rooms Available: ${widget.hostelData['roomsAvailable']}',
+                  style: TextStyle(fontSize: 16),
+                ),
                 SizedBox(height: 8),
-                Text('Capacity: ${widget.hostelData['capacity']}'),
+                Text(
+                  'Room Capacity: ${widget.hostelData['capacity']}',
+                  style: TextStyle(fontSize: 16),
+                ),
                 SizedBox(height: 8),
-                Text('Price: \$${widget.hostelData['price']}'),
+                Text(
+                  'Address: ${widget.hostelData['address']}',
+                  style: TextStyle(fontSize: 16),
+                ),
+
                 SizedBox(height: 8),
-                Text('Food Availability: ${widget.hostelData['foodAvailability']}'),
+                Text(
+                  'Price: \R\s\.${widget.hostelData['price']}',
+                  style: TextStyle(fontSize: 16),
+                ),
                 SizedBox(height: 8),
-                Text('Facilities: ${widget.hostelData['facilities'].join(', ')}'),
+
                 SizedBox(height: 8),
-                if (widget.hostelData['geopoint'] != null)
-                  ElevatedButton(
-                    onPressed: () {
-                      openMaps(widget.hostelData['geopoint']['latitude'], widget.hostelData['geopoint']['longitude']);
-                    },
-                    child: Text('Open in Maps'),
-                  ),
+                Text(
+                  'Facilities: ${widget.hostelData['facilities'].join(', ')}',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'For Directions:',
+                  style: TextStyle(fontSize: 16),
+                ),
+                ElevatedButton.icon(
+
+                  onPressed: () {
+                    openMaps(widget.hostelData['geopoint'] as GeoPoint);
+                  },
+                  icon: Icon(Icons.location_on),
+                  label: Text('Open in Maps'),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Contact: ${widget.hostelData['contactNumber']}',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                Row(
+                  children: [
+                    SizedBox(width: 20),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        launchUrlString("tel:${widget.hostelData['contactNumber']}");
+                      },
+                      icon: Icon(Icons.phone),
+                      label: Text('Contact'),
+                    ),
+                    SizedBox(width: 20)
+                  ],
+                ),
               ],
             ),
           ),
@@ -89,11 +139,12 @@ class _HostelDetailsScreenState extends State<HostelDetailsScreen> {
     );
   }
 
-  void openMaps(double latitude, double longitude) {
-    MapLauncher.showDirections(
-      mapType: MapType.google,
-      destination: Coords(latitude, longitude),
-    );
+  Future<void> openMaps(GeoPoint geopoint) async {
+    String googleUrl = 'https://www.google.com/maps/search/?api=1&query=${geopoint.latitude},${geopoint.longitude}';
+    if (await canLaunchUrlString(googleUrl)) {
+      await launchUrlString(googleUrl);
+    } else {
+      throw 'Could not open the map.';
+    }
   }
-
 }

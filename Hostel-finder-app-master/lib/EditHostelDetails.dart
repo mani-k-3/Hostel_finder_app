@@ -20,14 +20,13 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
   final TextEditingController roomsAvailableController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController contactNumberController = TextEditingController();
-  final TextEditingController foodAvailabilityController =
-  TextEditingController();
   final TextEditingController facilitiesController = TextEditingController();
   String selectedGender = 'Boys';
   // Image picker
   final ImagePicker _imagePicker = ImagePicker();
   List<File> _images = [];
   List<String> facilitiesList = [
+    'Food',
     'WiFi',
     'Parking',
     'AC',
@@ -82,7 +81,7 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
             roomsAvailableController.text =
                 document['roomsAvailable'].toString();
             priceController.text = document['price'].toString();
-            foodAvailabilityController.text = document['foodAvailability'];
+
             // Convert List to String
             selectedGender = document['for'];
             // You can add more fields as needed
@@ -160,7 +159,6 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
           'capacity': int.parse(capacityController.text),
           'roomsAvailable': int.parse(roomsAvailableController.text),
           'price': double.parse(priceController.text),
-          'foodAvailability': foodAvailabilityController.text,
           'facilities': selectedFacilities,
           'image_urls': _images.map((image) => image.path).toList(),
           'geopoint': _currentLocation != null
@@ -330,11 +328,7 @@ class _EditHostelDetailsFormState extends State<EditHostelDetailsForm> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(labelText: 'Hostel Price'),
               ),
-              SizedBox(height: 16),
-              TextField(
-                controller: foodAvailabilityController,
-                decoration: InputDecoration(labelText: 'Food Availability'),
-              ),
+
               SizedBox(height: 16),
               TextButton(
                 onPressed: () {

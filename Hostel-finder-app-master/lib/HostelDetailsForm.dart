@@ -30,8 +30,6 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
   final TextEditingController roomsAvailableController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController contactNumberController = TextEditingController();
-  final TextEditingController foodAvailabilityController =
-  TextEditingController();
   final TextEditingController facilitiesController = TextEditingController();
   final GlobalKey<State> _facilitiesDialogKey = GlobalKey<State>();
   // Image picker
@@ -51,6 +49,7 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
 
   // List of facilities
   List<String> facilitiesList = [
+    'Food',
     'WiFi',
     'Parking',
     'AC',
@@ -118,6 +117,7 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
 
         // Convert data to Map<String, dynamic>
         Map<String, dynamic> hostelData = {
+          'userId':user.uid,
           'name': nameController.text,
           'for': selectedGender,
           'area': areaController.text,
@@ -126,7 +126,6 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
           'capacity': int.parse(capacityController.text),
           'roomsAvailable': int.parse(roomsAvailableController.text),
           'price': double.parse(priceController.text),
-          'foodAvailability': foodAvailabilityController.text,
           'facilities': selectedFacilities, // Use the selectedFacilities list
           'image_urls': imageUrls,
           'geopoint': _currentLocation != null
@@ -255,7 +254,7 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hostel Details'),
+        title: Text('Hostel Details Upload'),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -344,15 +343,6 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
                 keyboardType: TextInputType.number,
 
               ),
-
-              // Food Availability
-              SizedBox(height: 16),
-              TextFormField(
-                controller: foodAvailabilityController,
-                decoration: InputDecoration(labelText: 'Food Availability'),
-
-              ),
-
               // Facilities selection
               SizedBox(height: 16),
               TextButton(
@@ -362,7 +352,7 @@ class _HostelDetailsFormState extends State<HostelDetailsForm> {
                     builder: (context) => _buildFacilitiesDialog(),
                   );
                 },
-                child: Text('Select Facilities'),
+               child: Text('Select Facilities'),
               ),
               //SizedBox(height: 8),
               //Text('Selected Facilities: ${selectedFacilities.join(', ')}'),

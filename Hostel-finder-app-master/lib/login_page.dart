@@ -70,7 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                   child: const Text('Register',
                       style: TextStyle(
-                        color: Colors.black,
+                        color: Colors.blue,
+                        fontSize: 20,
                       )),
 
                 ),
